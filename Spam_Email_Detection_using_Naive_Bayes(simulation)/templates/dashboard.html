@@ -1,0 +1,112 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spam Detection Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀Spam Email Detection using Naive Bayes</h1>
+    <p class="subtitle">Dark Theme | Machine Learning | Naive Bayes</p>
+
+    <div class="predict">
+        <h2>🧪 Test Message</h2>
+        <form method="post">
+            <textarea name="message" placeholder="Enter message...">{{ msg }}</textarea>
+            <button type="submit">Predict</button>
+        </form>
+        {% if prediction %}
+            <h3 class="{{ 'spam' if prediction=='SPAM' else 'ham' }}">
+                Prediction: {{ prediction }}
+            </h3>
+        {% endif %}
+    </div>
+    <div class="metrics">
+        <div class="card accent-green">Accuracy<br>{{ acc }}%</div>
+        <div class="card accent-blue">Precision<br>{{ prec }}%</div>
+        <div class="card accent-orange">Recall<br>{{ rec }}%</div>
+        <div class="card accent-purple">F1 Score<br>{{ f1 }}%</div>
+    </div>
+    <br><br>
+    <div class="charts-row">
+        <canvas id="metricsChart"></canvas>
+        <canvas id="confusionChart"></canvas>
+        <canvas id="rocChart"></canvas>
+    </div>
+        <h2 class="section-title">🔥 Confusion Matrix Heatmap</h2>
+    <div class="heatmap">
+        <div class="cell tn">{{ cm[0][0] }}</div>
+        <div class="cell fp">{{ cm[0][1] }}</div>
+        <div class="cell fn">{{ cm[1][0] }}</div>
+        <div class="cell tp">{{ cm[1][1] }}</div>
+    </div>
+    <div class="heatmap-labels">
+        <span>Actual Ham</span><span>Actual Spam</span>
+        <span>Pred Ham</span><span>Pred Spam</span>
+    </div>
+
+
+</div>
+
+<script>
+new Chart(document.getElementById('metricsChart'),{
+    type:'bar',
+    data:{
+        labels:['Accuracy','Precision','Recall','F1'],
+        datasets:[{
+            data:[
+                {{ (acc/100) | round(2) }},
+                {{ (prec/100) | round(2) }},
+                {{ (rec/100) | round(2) }},
+                {{ (f1/100) | round(2) }}
+            ],
+            backgroundColor:['#00e676','#2979ff','#ff9100','#d500f9']
+        }]
+    },
+    options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:1}}}
+});
+
+const cm = {{ cm | tojson }};
+new Chart(document.getElementById('confusionChart'),{
+    type:'bar',
+    data:{
+        labels:['Actual Ham','Actual Spam'],
+        datasets:[
+            {label:'Pred Ham',data:[cm[0][0],cm[1][0]],backgroundColor:'#00e676'},
+            {label:'Pred Spam',data:[cm[0][1],cm[1][1]],backgroundColor:'#ff1744'}
+        ]
+    }
+});
+new Chart(document.getElementById('rocChart'),{
+    type:'line',
+    data:{
+        labels: {{ fpr | tojson }},
+        datasets:[{
+            label:'ROC Curve (AUC={{ auc }})',
+            data: {{ tpr | tojson }},
+            borderColor : '#2979ff',
+            tension : 0.4,
+            fill : false
+        }]
+    },
+    options:{
+        plugins:{
+            tooltip:{
+                callbacks:{
+                    label: ctx => ctx.parsed.y.toFixed(3)
+                }
+            }
+        },
+        scales:{
+            x:{ title:{display:true,text:'False Positive Rate'} },
+            y:{ title:{display:true,text:'True Positive Rate'}, min:0, max:1 }
+        }
+    }
+});
+</script>
+
+</body>
+</html>
